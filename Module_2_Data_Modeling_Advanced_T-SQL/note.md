@@ -31,3 +31,11 @@ To identify the fact and dimensional table base on scenario
   - > Fact table will include these measured number
 
   - Apply the 4W-question for dimensional table, each for each, group them by their own attribute
+
+
+Using SQL Set Operations instead of for loop for faster and bigger dataset
+- Instead of execute the same query again and again which cost more, we can just add those rows into a staging table then run only 1 query to execute all
+- To solve this issue, we using MERGE sentence inn SQL Server (the same logic in Spark)
+- Enterprise Process :
+  - Extract : Python read file, push row into a stage table by using pandas.to_sql(chunksize)
+  - Transform & Load : Python call to a stored procedure which include MERGE for auto-update, insert
