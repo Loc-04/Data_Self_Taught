@@ -39,3 +39,6 @@ Using SQL Set Operations instead of for loop for faster and bigger dataset
 - Enterprise Process :
   - Extract : Python read file, push row into a stage table by using pandas.to_sql(chunksize)
   - Transform & Load : Python call to a stored procedure which include MERGE for auto-update, insert
+
+In SQL, SET is only use in UPDATE, and SELECT is use in INSERT
+Use CAST(<Field> AS <data_type>) to change data type of something need to compare

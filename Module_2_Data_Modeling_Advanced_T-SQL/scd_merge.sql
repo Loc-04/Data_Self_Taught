@@ -1,19 +1,33 @@
---Giả sử đã có bảng Dim_Customer và một bảng Staging_Customer (chứa dữ liệu mới vừa đổ vào).
--- Dùng merge để thực hiện logic SCD Type 2 : Tìm row trong Staging khác Dim, Expire old row in Dim, Insert new row in Dim
+-- BƯỚC 1: EXPIRE (Đánh dấu dòng cũ là hết hạn nếu có thay đổi)
+UPDATE D
+SET
+    D.Is_Current = 0,
+    D.Valid_To = GETDATE()
+FROM Dim_Customer D
+JOIN Staging_Customer S ON D.Customer_Source_ID = S.Customer_Source_ID
+WHERE
+    D.Is_Current = 1 -- Chỉ xét dòng đang active
+    AND (
+        D.Customer_Name <> S.Customer_Name
+        OR D.City <> S.City
+        OR D.Phone <> S.Phone
+        -- Lưu ý: Nếu cột cho phép NULL thì phải dùng ISNULL(A,'') <> ISNULL(B,'')
+    );
 
---Psuedo code logic :
-
---Dim_Customer is target table and Staging is source?
--- Chỉ insert những thằng mới hoặc thằng vừa bị Expire ở trên
-
-
-MERGE INTO Dim_Customer AS T
-USING Staging_Customer AS S
-    ON T.Customer_Source_ID = S.Customer_Source_ID AND T.Is_Current = 1
-WHEN MATCHED AND (T.Customer_Name <> S.Customer_Name
-                   OR T.City <> S.City
-                   OR T.Phone <> S.Phone) THEN
-    UPDATE SET T.Is_Current = 0, T.Valid_To = GETDATE()
-WHEN NOT MATCHED BY TARGET THEN
-    -- Action for rows in the source that do not exist in the target (e.g., INSERT)
-    INSERT (T.Customer_Source_Id, T.Customer_Name, T.City, T.Phone, T.Valid_From, T.Valid_To, T.Is_Current) VALUES (S.Customer_Source_Id, S.Customer_Name, S.City, S.Phone, GETDATE(), '9999-12-31', 1);
+-- BƯỚC 2: INSERT NEW VERSION (Thêm dòng mới cho thằng vừa expire HOẶC thằng mới toanh)
+INSERT INTO Dim_Customer (Customer_Source_ID, Customer_Name, City, Phone, Valid_From, Valid_To, Is_Current)
+SELECT
+    S.Customer_Source_ID,
+    S.Customer_Name,
+    S.City,
+    S.Phone,
+    GETDATE(),    -- Valid_From = Hôm nay
+    '9999-12-31', -- Valid_To = Future
+    1             -- Is_Current = True
+FROM Staging_Customer S
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM Dim_Customer D
+    WHERE D.Customer_Source_ID = S.Customer_Source_ID
+    AND D.Is_Current = 1
+);
