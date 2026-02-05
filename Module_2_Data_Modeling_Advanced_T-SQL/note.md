@@ -42,3 +42,5 @@ Using SQL Set Operations instead of for loop for faster and bigger dataset
 
 In SQL, SET is only use in UPDATE, and SELECT is use in INSERT
 Use CAST(<Field> AS <data_type>) to change data type of something need to compare
+
+Clustered Index and Non-Clustered Index.
